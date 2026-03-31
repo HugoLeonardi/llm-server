@@ -26,18 +26,17 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules:
-    - domain: 'auth.localhost'
+    - domain: 'auth.llm.test'
       policy: 'bypass'
-    - domain: '*.localhost'
+    - domain: '*.llm.test'
       policy: 'one_factor'
 
-# Session — HTTP local (pas de Secure cookie)
 session:
   cookies:
     - name: 'authelia_session'
-      domain: 'localhost'
-      authelia_url: 'http://auth.localhost'
-      default_redirection_url: 'http://auth.localhost'
+      domain: 'llm.test'
+      authelia_url: 'https://auth.llm.test'
+      default_redirection_url: 'https://chat.llm.test'
       expiration: '1 hour'
       inactivity: '5 minutes'
 
