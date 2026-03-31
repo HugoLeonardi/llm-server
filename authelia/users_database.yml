@@ -1,0 +1,22 @@
+---
+# ================================================================
+# Authelia — Base utilisateurs
+#
+# Avant de démarrer, remplacer le hash du mot de passe :
+#
+#   docker run --rm authelia/authelia:latest \
+#     authelia crypto hash generate bcrypt --password 'VotreMotDePasse'
+#
+# Copier le hash généré (ligne "Digest: $2b$12$...") et remplacer
+# la valeur du champ "password" ci-dessous.
+# ================================================================
+
+users:
+  hugo:
+    disabled: false
+    displayname: "Hugo"
+    # REMPLACER par le hash généré avec la commande ci-dessus
+    password: "$2b$12$MP3zigm9FG2Ar0kzBihEq.1R9ClUeqxTZF9amK2DbWNvnOnLGTpYK"
+    email: hugoleonardi54@gmail.com
+    groups:
+      - admins
