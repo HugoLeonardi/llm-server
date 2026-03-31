@@ -1,22 +1,23 @@
 # ================================================================
-# Caddyfile — Configuration locale (HTTP uniquement)
-# Pour la production : supprimer "auto_https off" et ajouter un
-# vrai domaine. Caddy gérera les certificats Let's Encrypt seul.
+# Caddyfile — Configuration locale avec HTTPS (tls internal)
+# Caddy génère une CA locale automatiquement.
+# Pour la production : retirer "tls internal", Caddy utilisera
+# Let's Encrypt automatiquement avec un vrai domaine.
 # ================================================================
 
 {
-    auto_https off
     admin off
-    http_port 8080
 }
 
 # --- Portail d'authentification Authelia ---
-http://auth.localhost {
+auth.llm.test {
+    tls internal
     reverse_proxy authelia:9091
 }
 
 # --- Open WebUI (Interface chat) ---
-http://chat.localhost {
+chat.llm.test {
+    tls internal
     forward_auth authelia:9091 {
         uri /api/authz/forward-auth
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
@@ -25,7 +26,8 @@ http://chat.localhost {
 }
 
 # --- Nextcloud (Cloud privé) ---
-http://cloud.localhost {
+cloud.llm.test {
+    tls internal
     forward_auth authelia:9091 {
         uri /api/authz/forward-auth
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
@@ -34,7 +36,8 @@ http://cloud.localhost {
 }
 
 # --- Portainer (Gestion Docker) ---
-http://portainer.localhost {
+portainer.llm.test {
+    tls internal
     forward_auth authelia:9091 {
         uri /api/authz/forward-auth
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
