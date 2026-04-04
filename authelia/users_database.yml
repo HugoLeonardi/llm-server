@@ -15,7 +15,7 @@ users:
   hugo:
     disabled: false
     displayname: "Hugo"
-    password: "$2b$12$MP3zigm9FG2Ar0kzBihEq.1R9ClUeqxTZF9amK2DbWNvnOnLGTpYK"
+    password: "$2b$12$m9xhv.laBr9yvZ/kmpHPCOJALo6Rntq3aBUKSh2bpj6sTI.G7gDMC"
     email: hugoleonardi54@gmail.com
     groups:
       - admins
