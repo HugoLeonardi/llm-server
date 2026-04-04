@@ -10,6 +10,8 @@ log:
   level: 'info'
 
 authentication_backend:
+  password_reset:
+    disable: true
   file:
     path: '/config/users_database.yml'
     password:
