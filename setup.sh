@@ -4,13 +4,17 @@
 # Hugo Leonardi — Ubuntu 24.04 LTS — AMD RX 6950 XT (ROCm)
 #
 # Usage : bash setup.sh [étape]
-#   bash setup.sh          → exécute toutes les étapes
-#   bash setup.sh system   → mise à jour système uniquement
-#   bash setup.sh docker   → Docker uniquement
-#   bash setup.sh rocm     → ROCm uniquement
-#   bash setup.sh hosts    → entrées /etc/hosts uniquement
-#   bash setup.sh env      → génération du .env uniquement
-#   bash setup.sh stack    → démarrage Docker Compose uniquement
+#   bash setup.sh        → exécute toutes les étapes
+#   bash setup.sh clone  → clone le dépôt GitHub
+#   bash setup.sh system → mise à jour système
+#   bash setup.sh docker → installation Docker
+#   bash setup.sh rocm   → installation ROCm (GPU AMD)
+#   bash setup.sh ufw    → configuration pare-feu
+#   bash setup.sh disk   → formatage et montage du disque de données
+#   bash setup.sh env    → génération du .env
+#   bash setup.sh authelia-password → hash bcrypt mot de passe Authelia
+#   bash setup.sh ollama → installation et configuration Ollama
+#   bash setup.sh stack  → démarrage Docker Compose
 # =============================================================================
 
 set -euo pipefail
@@ -30,6 +34,7 @@ error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_URL="https://github.com/HugoLeonardi/llm-server.git"
 REPO_DIR="${HOME}/llm-server"
+DOMAIN="alba-arietis.com"
 
 # =============================================================================
 # 0. CLONAGE DU DÉPÔT
@@ -51,7 +56,7 @@ step_clone() {
 step_system() {
     info "Mise à jour du système..."
     sudo apt update && sudo apt upgrade -y
-    sudo apt install -y curl git wget gnupg ca-certificates lsb-release openssl
+    sudo apt install -y curl git wget gnupg ca-certificates lsb-release openssl gdisk
     success "Système à jour."
 }
 
@@ -79,7 +84,6 @@ step_docker() {
     sudo apt update
     sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-    # Ajouter l'utilisateur courant au groupe docker
     sudo usermod -aG docker "$USER"
     success "Docker installé. IMPORTANT : ferme et rouvre ta session pour que le groupe docker soit actif."
 }
@@ -109,19 +113,19 @@ step_rocm() {
 }
 
 # =============================================================================
-# 4. ENTRÉES /etc/hosts
+# 4. PARE-FEU (UFW)
 # =============================================================================
-step_hosts() {
-    local ENTRY="127.0.0.1 auth.llm.test chat.llm.test cloud.llm.test portainer.llm.test"
+step_ufw() {
+    info "Configuration du pare-feu UFW..."
 
-    if grep -q "auth.llm.test" /etc/hosts; then
-        success "Entrées /etc/hosts déjà présentes."
-        return
-    fi
+    sudo ufw allow 22/tcp    # SSH
+    sudo ufw allow 80/tcp    # HTTP  (ACME Let's Encrypt)
+    sudo ufw allow 443/tcp   # HTTPS
+    sudo ufw allow 51820/udp # WireGuard (VPN — phase 3)
 
-    info "Ajout des entrées DNS locales dans /etc/hosts..."
-    echo "$ENTRY" | sudo tee -a /etc/hosts > /dev/null
-    success "Entrées ajoutées : $ENTRY"
+    sudo ufw --force enable
+    sudo ufw status verbose
+    success "Pare-feu configuré."
 }
 
 # =============================================================================
@@ -137,7 +141,6 @@ step_env() {
 
     info "Génération des secrets et du fichier .env..."
 
-    # Demander le mot de passe admin Nextcloud
     local NEXTCLOUD_ADMIN_PASSWORD
     while true; do
         read -r -s -p "Mot de passe admin Nextcloud : " NEXTCLOUD_ADMIN_PASSWORD
@@ -171,12 +174,12 @@ EOF
 }
 
 # =============================================================================
-# 6. HASH BCRYPT AUTHELIA (mot de passe utilisateur)
+# 7. HASH BCRYPT AUTHELIA (mot de passe utilisateur hugo)
 # =============================================================================
 step_authelia_password() {
     info "Génération du hash bcrypt pour le mot de passe Authelia..."
     echo ""
-    read -r -s -p "Entre le mot de passe Authelia pour l'utilisateur 'Admin' : " AUTHELIA_PASS
+    read -r -s -p "Entre le mot de passe Authelia pour l'utilisateur 'hugo' : " AUTHELIA_PASS
     echo ""
 
     local HASH
@@ -188,17 +191,17 @@ step_authelia_password() {
         error "Impossible de générer le hash. Docker est-il démarré ?"
     fi
 
-    # S'assurer que le dossier authelia appartient à l'utilisateur courant
     sudo chown -R "$USER":"$USER" "${SCRIPT_DIR}/authelia/"
 
-    # Remplacer le hash dans users_database.yml
-    sed -i "s|password:.*|password: \"${HASH}\"|" "${SCRIPT_DIR}/authelia/users_database.yml"
+    # Remplacer uniquement le hash de l'utilisateur hugo
+    sed -i "/^  hugo:/,/^  [^ ]/ s|password:.*|password: \"${HASH}\"|" \
+        "${SCRIPT_DIR}/authelia/users_database.yml"
 
-    success "Hash bcrypt mis à jour dans authelia/users_database.yml."
+    success "Hash bcrypt mis à jour pour l'utilisateur hugo."
 }
 
 # =============================================================================
-# 7. OLLAMA (bare metal — accès direct GPU AMD via ROCm)
+# 8. OLLAMA (bare metal — GPU AMD via ROCm — modèles sur /data)
 # =============================================================================
 step_ollama() {
     if command -v ollama &>/dev/null; then
@@ -209,17 +212,14 @@ step_ollama() {
         success "Ollama installé."
     fi
 
-    # Configurer Ollama pour écouter sur toutes les interfaces
-    # (nécessaire pour que le conteneur Docker puisse y accéder via host.docker.internal)
-    info "Configuration d'Ollama (OLLAMA_HOST=0.0.0.0)..."
+    # Configurer le service systemd
+    info "Configuration d'Ollama..."
     sudo mkdir -p /etc/systemd/system/ollama.service.d
     cat <<EOF | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null
 [Service]
 Environment="OLLAMA_HOST=0.0.0.0"
 EOF
 
-    # Activer et démarrer le service systemd
-    info "Activation du service Ollama..."
     sudo systemctl daemon-reload
     sudo systemctl enable ollama
     sudo systemctl restart ollama
@@ -236,19 +236,14 @@ EOF
     fi
 
     success "Ollama actif sur http://localhost:11434"
-
-    # Vérifier la détection du GPU AMD
+    info "GPU détecté :"
+    sudo journalctl -u ollama -n 5 --no-pager | grep -i "rocm\|gfx\|vram" || true
     echo ""
-    info "GPU détecté par Ollama :"
-    ollama ps 2>/dev/null || true
-    sudo journalctl -u ollama -n 5 --no-pager | grep -i "gpu\|rocm\|gfx" || true
-
-    echo ""
-    success "Ollama prêt. Installe tes modèles avec : ollama pull <modele>"
+    success "Installe tes modèles avec : ollama pull <modele>"
 }
 
 # =============================================================================
-# 8. DÉMARRAGE DE LA STACK DOCKER COMPOSE
+# 9. DÉMARRAGE DE LA STACK DOCKER COMPOSE
 # =============================================================================
 step_stack() {
     local ENV_FILE="${SCRIPT_DIR}/.env"
@@ -270,14 +265,10 @@ step_stack() {
     echo -e "${GREEN}   Stack démarrée avec succès !            ${NC}"
     echo -e "${GREEN}============================================${NC}"
     echo ""
-    echo -e "  ${BLUE}Authelia (SSO)${NC}  →  https://auth.llm.test"
-    echo -e "  ${BLUE}Open WebUI${NC}      →  https://chat.llm.test"
-    echo -e "  ${BLUE}Nextcloud${NC}       →  https://cloud.llm.test"
-    echo -e "  ${BLUE}Portainer${NC}       →  https://portainer.llm.test"
-    echo ""
-    warn "Certificat CA Caddy — à importer dans Firefox pour éviter l'avertissement HTTPS :"
-    echo "  sudo docker cp caddy:/data/caddy/pki/authorities/local/root.crt ~/llm-server/caddy-local-ca.crt"
-    echo "  Puis : Firefox → Paramètres → Confidentialité → Certificats → Importer"
+    echo -e "  ${BLUE}Authelia (SSO)${NC}  →  https://auth.${DOMAIN}"
+    echo -e "  ${BLUE}Open WebUI${NC}      →  https://chat.${DOMAIN}"
+    echo -e "  ${BLUE}Nextcloud${NC}       →  https://cloud.${DOMAIN}"
+    echo -e "  ${BLUE}Portainer${NC}       →  https://portainer.${DOMAIN}"
     echo ""
 }
 
@@ -294,28 +285,28 @@ main() {
     echo ""
 
     case "$STEP" in
-        clone)  step_clone ;;
-        system) step_system ;;
-        docker) step_docker ;;
-        rocm)   step_rocm ;;
-        hosts)  step_hosts ;;
-        env)    step_env ;;
+        clone)             step_clone ;;
+        system)            step_system ;;
+        docker)            step_docker ;;
+        rocm)              step_rocm ;;
+        ufw)               step_ufw ;;
+        env)               step_env ;;
         authelia-password) step_authelia_password ;;
-        ollama) step_ollama ;;
-        stack)  step_stack ;;
+        ollama)            step_ollama ;;
+        stack)             step_stack ;;
         all)
             step_clone
             step_system
             step_docker
             step_rocm
-            step_hosts
+            step_ufw
             step_env
             step_authelia_password
             step_ollama
             step_stack
             ;;
         *)
-            echo "Usage : bash setup.sh [clone|system|docker|rocm|hosts|env|authelia-password|ollama|stack|all]"
+            echo "Usage : bash setup.sh [clone|system|docker|rocm|ufw|env|authelia-password|ollama|stack|all]"
             exit 1
             ;;
     esac
