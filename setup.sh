@@ -176,7 +176,7 @@ EOF
 step_authelia_password() {
     info "Génération du hash bcrypt pour le mot de passe Authelia..."
     echo ""
-    read -r -s -p "Entre le mot de passe Authelia pour l'utilisateur 'hugo' : " AUTHELIA_PASS
+    read -r -s -p "Entre le mot de passe Authelia pour l'utilisateur 'Admin' : " AUTHELIA_PASS
     echo ""
 
     local HASH
