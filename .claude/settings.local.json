@@ -10,7 +10,8 @@
       "Read(//home/hugo_leonardi/PortfolioDevOpsCloud/projects/**)",
       "Read(//home/hugo_leonardi/PortfolioDevOpsCloud/css/**)",
       "Bash(find . -type f ! -path './.git/*' -exec ls -lh {})",
-      "Read(//home/hugo_leonardi/llm-server/**)"
+      "Read(//home/hugo_leonardi/llm-server/**)",
+      "Bash(ls /home/hugo/llm-server/README*)"
     ]
   }
 }
