@@ -79,6 +79,7 @@ llm-server/
 
 - **Ollama bare metal** (pas dans Docker) : accès direct GPU sans overhead
 - **Modèles Ollama stockés sur `/data/ollama/models`** : disque NVMe dédié (`OLLAMA_MODELS=/data/ollama/models`)
+- **Ollama GPU** : `HSA_OVERRIDE_GFX_VERSION=10.3.0` requis pour le RX 6950 XT (gfx1030 = RDNA 2) + utilisateur `ollama` dans les groupes `render` et `video`
 - **Caddy + Let's Encrypt** : certificat public automatique, reconnu par tous les navigateurs et appareils sans import manuel
 - **Authelia `one_factor`** actuellement → `two_factor` (TOTP) à activer en production
 - **Authelia recharge `users_database.yml` automatiquement** — pas besoin de restart pour ajouter un utilisateur
@@ -93,6 +94,9 @@ llm-server/
 | Fichiers authelia owned par root | Créés avec des droits root | `sudo chown -R hugo_leonardi:hugo_leonardi ~/llm-server/authelia/` |
 | Authelia crash — domain invalide | `localhost` sans point interdit | Utiliser un vrai domaine |
 | Authelia crash — scheme HTTP | Authelia 4.38+ exige HTTPS | Caddy + domaine réel + Let's Encrypt |
+| Ollama n'utilise pas le GPU | Service `ollama` non membre des groupes `render`/`video` | `sudo usermod -aG render,video ollama` + restart |
+| Ollama GPU non reconnu (RX 6950 XT) | ROCm ne détecte pas gfx1030 sans override | `HSA_OVERRIDE_GFX_VERSION=10.3.0` dans override.conf |
+| Caddy coupe les réponses LLM | Pas de support streaming par défaut | `flush_interval -1` + `read_timeout 10m` dans le bloc `reverse_proxy` |
 
 ## Prochaines étapes
 

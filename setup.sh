@@ -231,7 +231,13 @@ step_ollama() {
 [Service]
 Environment="OLLAMA_HOST=0.0.0.0"
 Environment="OLLAMA_MODELS=/data/ollama/models"
+Environment="HSA_OVERRIDE_GFX_VERSION=10.3.0"
+Environment="ROCR_VISIBLE_DEVICES=0"
+Environment="HIP_VISIBLE_DEVICES=0"
 EOF
+
+    # L'utilisateur ollama doit être dans les groupes render et video pour accéder au GPU
+    sudo usermod -aG render,video ollama
 
     sudo systemctl daemon-reload
     sudo systemctl enable ollama
