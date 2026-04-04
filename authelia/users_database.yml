@@ -15,8 +15,15 @@ users:
   hugo:
     disabled: false
     displayname: "Hugo"
-    # REMPLACER par le hash généré avec la commande ci-dessus
     password: "$2b$12$MP3zigm9FG2Ar0kzBihEq.1R9ClUeqxTZF9amK2DbWNvnOnLGTpYK"
     email: hugoleonardi54@gmail.com
+    groups:
+      - admins
+
+  Alex:
+    disabled: false
+    displayname: "Alex"
+    password: "$2b$12$cjAC71LK.FFZwUcfcubsRuSYUGFVVf22w8k6hVWijw0s9MGnJ.1UO"
+    email: alex@example.com
     groups:
       - admins
