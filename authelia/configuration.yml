@@ -1,8 +1,6 @@
 ---
 # ================================================================
-# Authelia — Configuration (Tests locaux HTTP)
-# Les secrets sont injectés via les variables d'environnement
-# Docker Compose (voir .env), pas stockés dans ce fichier.
+# Authelia — Configuration Production
 # ================================================================
 
 server:
@@ -11,7 +9,6 @@ server:
 log:
   level: 'info'
 
-# Authentification par fichier
 authentication_backend:
   file:
     path: '/config/users_database.yml'
@@ -20,38 +17,37 @@ authentication_backend:
       bcrypt:
         cost: 12
 
-# Politique d'accès
-# one_factor pour les tests (pas de TOTP requis)
-# Passer à two_factor en production
 access_control:
   default_policy: 'deny'
   rules:
-    - domain: 'auth.llm.test'
+    - domain: 'auth.alba-arietis.com'
       policy: 'bypass'
-    - domain: '*.llm.test'
-      policy: 'one_factor'
+    - domain: '*.alba-arietis.com'
+      policy: 'two_factor'
 
 session:
   cookies:
     - name: 'authelia_session'
-      domain: 'llm.test'
-      authelia_url: 'https://auth.llm.test'
-      default_redirection_url: 'https://chat.llm.test'
+      domain: 'alba-arietis.com'
+      authelia_url: 'https://auth.alba-arietis.com'
+      default_redirection_url: 'https://chat.alba-arietis.com'
       expiration: '1 hour'
       inactivity: '5 minutes'
 
-# Protection brute-force
 regulation:
   max_retries: 3
   find_time: '2 minutes'
   ban_time: '5 minutes'
 
-# Stockage SQLite (simple pour les tests)
 storage:
   local:
     path: '/config/db.sqlite3'
 
-# Notifications écrites dans un fichier (pas besoin d'un serveur mail)
 notifier:
   filesystem:
     filename: '/config/notifications.txt'
+
+totp:
+  issuer: 'alba-arietis.com'
+  period: 30
+  skew: 1

@@ -209,8 +209,18 @@ step_ollama() {
         success "Ollama installé."
     fi
 
+    # Configurer Ollama pour écouter sur toutes les interfaces
+    # (nécessaire pour que le conteneur Docker puisse y accéder via host.docker.internal)
+    info "Configuration d'Ollama (OLLAMA_HOST=0.0.0.0)..."
+    sudo mkdir -p /etc/systemd/system/ollama.service.d
+    cat <<EOF | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0"
+EOF
+
     # Activer et démarrer le service systemd
     info "Activation du service Ollama..."
+    sudo systemctl daemon-reload
     sudo systemctl enable ollama
     sudo systemctl restart ollama
 
@@ -234,14 +244,7 @@ step_ollama() {
     sudo journalctl -u ollama -n 5 --no-pager | grep -i "gpu\|rocm\|gfx" || true
 
     echo ""
-    warn "Open WebUI est déjà configuré pour se connecter à Ollama (host.docker.internal:11434)."
-    info "Pour télécharger un modèle :"
-    echo "  ollama pull qwen2.5:14b"
-    echo "  ollama pull mistral-nemo"
-    echo ""
-    info "Modèles recommandés pour ta RX 6950 XT (16 Go VRAM) :"
-    echo "  qwen2.5:14b-instruct-q4_K_M   (~9 Go)  — polyvalent, bon en français"
-    echo "  mistral-nemo                   (~7.5 Go) — léger et rapide"
+    success "Ollama prêt. Installe tes modèles avec : ollama pull <modele>"
 }
 
 # =============================================================================
