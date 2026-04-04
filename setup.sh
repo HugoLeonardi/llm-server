@@ -171,6 +171,9 @@ AUTHELIA_STORAGE_ENCRYPTION_KEY=$(openssl rand -hex 32)
 # Open WebUI
 WEBUI_SECRET_KEY=$(openssl rand -hex 32)
 
+# SearXNG
+SEARXNG_SECRET=$(openssl rand -hex 32)
+
 # Nextcloud
 NEXTCLOUD_DB_PASSWORD=$(openssl rand -hex 16)
 NEXTCLOUD_DB_ROOT_PASSWORD=$(openssl rand -hex 16)

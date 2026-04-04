@@ -41,6 +41,9 @@ services:
     environment:
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY}
+      ENABLE_RAG_WEB_SEARCH: "True"
+      RAG_WEB_SEARCH_ENGINE: "searxng"
+      SEARXNG_QUERY_URL: "http://searxng:8080/search?q=<query>&format=json&categories=general"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -86,6 +89,18 @@ services:
     container_name: nextcloud-redis
     networks:
       - llm-net
+    restart: unless-stopped
+
+  # ─── Moteur de recherche web (pour Open WebUI) ───────────────────────────
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    networks:
+      - llm-net
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET}
     restart: unless-stopped
 
   # ─── Gestion Docker ───────────────────────────────────────────────────────
