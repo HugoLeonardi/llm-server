@@ -198,7 +198,54 @@ step_authelia_password() {
 }
 
 # =============================================================================
-# 7. DÉMARRAGE DE LA STACK DOCKER COMPOSE
+# 7. OLLAMA (bare metal — accès direct GPU AMD via ROCm)
+# =============================================================================
+step_ollama() {
+    if command -v ollama &>/dev/null; then
+        success "Ollama déjà installé : $(ollama --version)"
+    else
+        info "Installation d'Ollama..."
+        curl -fsSL https://ollama.com/install.sh | sh
+        success "Ollama installé."
+    fi
+
+    # Activer et démarrer le service systemd
+    info "Activation du service Ollama..."
+    sudo systemctl enable ollama
+    sudo systemctl restart ollama
+
+    # Attendre que le service soit prêt
+    local RETRIES=10
+    until curl -sf http://localhost:11434 &>/dev/null || [[ $RETRIES -eq 0 ]]; do
+        sleep 2
+        (( RETRIES-- ))
+    done
+
+    if ! curl -sf http://localhost:11434 &>/dev/null; then
+        error "Ollama ne répond pas sur le port 11434. Vérifie : sudo journalctl -u ollama -n 30"
+    fi
+
+    success "Ollama actif sur http://localhost:11434"
+
+    # Vérifier la détection du GPU AMD
+    echo ""
+    info "GPU détecté par Ollama :"
+    ollama ps 2>/dev/null || true
+    sudo journalctl -u ollama -n 5 --no-pager | grep -i "gpu\|rocm\|gfx" || true
+
+    echo ""
+    warn "Open WebUI est déjà configuré pour se connecter à Ollama (host.docker.internal:11434)."
+    info "Pour télécharger un modèle :"
+    echo "  ollama pull qwen2.5:14b"
+    echo "  ollama pull mistral-nemo"
+    echo ""
+    info "Modèles recommandés pour ta RX 6950 XT (16 Go VRAM) :"
+    echo "  qwen2.5:14b-instruct-q4_K_M   (~9 Go)  — polyvalent, bon en français"
+    echo "  mistral-nemo                   (~7.5 Go) — léger et rapide"
+}
+
+# =============================================================================
+# 8. DÉMARRAGE DE LA STACK DOCKER COMPOSE
 # =============================================================================
 step_stack() {
     local ENV_FILE="${SCRIPT_DIR}/.env"
@@ -216,14 +263,19 @@ step_stack() {
     sudo docker compose ps
 
     echo ""
-    success "Stack démarrée. URLs disponibles :"
-    echo "  https://auth.llm.test      → Authelia (SSO)"
-    echo "  https://chat.llm.test      → Open WebUI"
-    echo "  https://cloud.llm.test     → Nextcloud"
-    echo "  https://portainer.llm.test → Portainer"
+    echo -e "${GREEN}============================================${NC}"
+    echo -e "${GREEN}   Stack démarrée avec succès !            ${NC}"
+    echo -e "${GREEN}============================================${NC}"
     echo ""
-    warn "N'oublie pas d'importer le certificat CA Caddy dans Firefox :"
+    echo -e "  ${BLUE}Authelia (SSO)${NC}  →  https://auth.llm.test"
+    echo -e "  ${BLUE}Open WebUI${NC}      →  https://chat.llm.test"
+    echo -e "  ${BLUE}Nextcloud${NC}       →  https://cloud.llm.test"
+    echo -e "  ${BLUE}Portainer${NC}       →  https://portainer.llm.test"
+    echo ""
+    warn "Certificat CA Caddy — à importer dans Firefox pour éviter l'avertissement HTTPS :"
     echo "  sudo docker cp caddy:/data/caddy/pki/authorities/local/root.crt ~/llm-server/caddy-local-ca.crt"
+    echo "  Puis : Firefox → Paramètres → Confidentialité → Certificats → Importer"
+    echo ""
 }
 
 # =============================================================================
@@ -246,6 +298,7 @@ main() {
         hosts)  step_hosts ;;
         env)    step_env ;;
         authelia-password) step_authelia_password ;;
+        ollama) step_ollama ;;
         stack)  step_stack ;;
         all)
             step_clone
@@ -255,10 +308,11 @@ main() {
             step_hosts
             step_env
             step_authelia_password
+            step_ollama
             step_stack
             ;;
         *)
-            echo "Usage : bash setup.sh [clone|system|docker|rocm|hosts|env|authelia-password|stack|all]"
+            echo "Usage : bash setup.sh [clone|system|docker|rocm|hosts|env|authelia-password|ollama|stack|all]"
             exit 1
             ;;
     esac
