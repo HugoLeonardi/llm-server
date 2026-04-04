@@ -137,39 +137,37 @@ step_env() {
 
     info "Génération des secrets et du fichier .env..."
 
-    local AUTHELIA_JWT_SECRET
-    local AUTHELIA_SESSION_SECRET
-    local AUTHELIA_STORAGE_ENCRYPTION_KEY
-    local WEBUI_SECRET_KEY
-    local NEXTCLOUD_DB_PASSWORD
-    local NEXTCLOUD_DB_ROOT_PASSWORD
-
-    AUTHELIA_JWT_SECRET=$(openssl rand -hex 32)
-    AUTHELIA_SESSION_SECRET=$(openssl rand -hex 32)
-    AUTHELIA_STORAGE_ENCRYPTION_KEY=$(openssl rand -hex 32)
-    WEBUI_SECRET_KEY=$(openssl rand -hex 32)
-    NEXTCLOUD_DB_PASSWORD=$(openssl rand -hex 16)
-    NEXTCLOUD_DB_ROOT_PASSWORD=$(openssl rand -hex 16)
+    # Demander le mot de passe admin Nextcloud
+    local NEXTCLOUD_ADMIN_PASSWORD
+    while true; do
+        read -r -s -p "Mot de passe admin Nextcloud : " NEXTCLOUD_ADMIN_PASSWORD
+        echo ""
+        read -r -s -p "Confirmer : " NEXTCLOUD_ADMIN_PASSWORD_CONFIRM
+        echo ""
+        if [[ "$NEXTCLOUD_ADMIN_PASSWORD" == "$NEXTCLOUD_ADMIN_PASSWORD_CONFIRM" ]]; then
+            break
+        fi
+        warn "Les mots de passe ne correspondent pas, réessaie."
+    done
 
     cat > "$ENV_FILE" <<EOF
 # Authelia
-AUTHELIA_JWT_SECRET=${AUTHELIA_JWT_SECRET}
-AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
-AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+AUTHELIA_JWT_SECRET=$(openssl rand -hex 32)
+AUTHELIA_SESSION_SECRET=$(openssl rand -hex 32)
+AUTHELIA_STORAGE_ENCRYPTION_KEY=$(openssl rand -hex 32)
 
 # Open WebUI
-WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+WEBUI_SECRET_KEY=$(openssl rand -hex 32)
 
 # Nextcloud
-NEXTCLOUD_DB_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
-NEXTCLOUD_DB_ROOT_PASSWORD=${NEXTCLOUD_DB_ROOT_PASSWORD}
-NEXTCLOUD_ADMIN_USER=hugo
-NEXTCLOUD_ADMIN_PASSWORD=
+NEXTCLOUD_DB_PASSWORD=$(openssl rand -hex 16)
+NEXTCLOUD_DB_ROOT_PASSWORD=$(openssl rand -hex 16)
+NEXTCLOUD_ADMIN_USER=Admin
+NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
 EOF
 
     chmod 600 "$ENV_FILE"
-    warn ".env généré. Il te reste à définir NEXTCLOUD_ADMIN_PASSWORD dans ce fichier."
-    success ".env créé avec les secrets aléatoires."
+    success ".env créé avec tous les secrets."
 }
 
 # =============================================================================
@@ -204,11 +202,6 @@ step_stack() {
 
     if [[ ! -f "$ENV_FILE" ]]; then
         error ".env introuvable. Lance d'abord : bash setup.sh env"
-    fi
-
-    # Vérifier que NEXTCLOUD_ADMIN_PASSWORD est défini
-    if grep -q "NEXTCLOUD_ADMIN_PASSWORD=$" "$ENV_FILE"; then
-        error "NEXTCLOUD_ADMIN_PASSWORD est vide dans .env. Définis-le avant de continuer."
     fi
 
     info "Démarrage de la stack Docker Compose..."
