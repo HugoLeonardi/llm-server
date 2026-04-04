@@ -188,6 +188,9 @@ step_authelia_password() {
         error "Impossible de générer le hash. Docker est-il démarré ?"
     fi
 
+    # S'assurer que le dossier authelia appartient à l'utilisateur courant
+    sudo chown -R "$USER":"$USER" "${SCRIPT_DIR}/authelia/"
+
     # Remplacer le hash dans users_database.yml
     sed -i "s|password:.*|password: \"${HASH}\"|" "${SCRIPT_DIR}/authelia/users_database.yml"
 
