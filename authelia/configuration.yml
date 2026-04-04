@@ -25,7 +25,7 @@ access_control:
     - domain: 'auth.alba-arietis.com'
       policy: 'bypass'
     - domain: '*.alba-arietis.com'
-      policy: 'two_factor'
+      policy: 'one_factor'
 
 session:
   cookies:
