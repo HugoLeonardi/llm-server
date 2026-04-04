@@ -39,7 +39,6 @@ services:
     networks:
       - llm-net
     environment:
-      # Ollama n'est pas encore installé — erreur de connexion attendue dans l'UI
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY}
     extra_hosts:

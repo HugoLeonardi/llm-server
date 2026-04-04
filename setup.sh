@@ -122,6 +122,15 @@ step_ufw() {
     sudo ufw allow 80/tcp    # HTTP  (ACME Let's Encrypt)
     sudo ufw allow 443/tcp   # HTTPS
     sudo ufw allow 51820/udp # WireGuard (VPN — phase 3)
+    # Ollama — restreint au subnet du réseau Docker llm-net uniquement
+    DOCKER_SUBNET=$(docker network inspect llm-server_llm-net 2>/dev/null \
+        | grep -oP '"Subnet":\s*"\K[^"]+' | head -1)
+    if [[ -n "$DOCKER_SUBNET" ]]; then
+        sudo ufw allow from "$DOCKER_SUBNET" to any port 11434
+        success "Ollama : accès restreint au subnet Docker ($DOCKER_SUBNET)"
+    else
+        warn "Réseau llm-net introuvable — démarre la stack avant de relancer cette étape."
+    fi
 
     sudo ufw --force enable
     sudo ufw status verbose
@@ -218,6 +227,7 @@ step_ollama() {
     cat <<EOF | sudo tee /etc/systemd/system/ollama.service.d/override.conf > /dev/null
 [Service]
 Environment="OLLAMA_HOST=0.0.0.0"
+Environment="OLLAMA_MODELS=/data/ollama/models"
 EOF
 
     sudo systemctl daemon-reload

@@ -72,7 +72,7 @@ llm-server/
 ## Décisions techniques importantes
 
 - **Ollama bare metal** (pas dans Docker) : accès direct GPU sans overhead
-- **Modèles Ollama stockés sur `/data`** : disque NVMe dédié monté à cet emplacement
+- **Modèles Ollama stockés sur `/data/ollama/models`** : disque NVMe dédié (`OLLAMA_MODELS=/data/ollama/models`)
 - **Caddy + Let's Encrypt** : certificat public automatique, reconnu par tous les navigateurs et appareils sans import manuel
 - **Authelia `one_factor`** actuellement → `two_factor` (TOTP) à activer en production
 - **Authelia recharge `users_database.yml` automatiquement** — pas besoin de restart pour ajouter un utilisateur
