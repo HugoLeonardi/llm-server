@@ -1,0 +1,129 @@
+================================================================
+JOURNAL DE MISE EN PLACE — LLM Server
+Date : 31 mars 2026
+================================================================
+
+OBJECTIF
+--------
+Mettre en place un serveur LLM self-hosted pour usage professionnel
+(ingénierie CVC). Phase de test : déploiement de tous les services
+autour du LLM, sans Ollama ni WireGuard pour l'instant.
+
+MATÉRIEL
+--------
+- OS       : Ubuntu 24.04 LTS
+- GPU      : AMD Radeon RX 6950 XT (16 Go VRAM)
+- CPU      : Intel Core i5-12400
+- RAM      : 32 Go DDR5
+- Stack GPU: ROCm 7.x (à installer plus tard)
+
+SERVICES DÉPLOYÉS
+-----------------
+- Caddy          : reverse proxy HTTPS (tls internal)
+- Authelia       : SSO / authentification (one_factor pour les tests)
+- Open WebUI     : interface chat (connectée à Ollama quand installé)
+- Nextcloud      : cloud privé (+ MariaDB 11 + Redis)
+- Portainer      : interface de gestion Docker
+
+SERVICES NON ENCORE DÉPLOYÉS
+-----------------------------
+- Ollama         : moteur LLM bare metal (Phase 2)
+- WireGuard      : VPN accès distant (Phase 3)
+- Hermes Agent   : agent IA autonome (Phase 4)
+
+STRUCTURE DES FICHIERS
+----------------------
+/home/hugo_leonardi/llm-server/
+├── docker-compose.yml
+├── .env                        (secrets — ne pas committer)
+├── Caddyfile
+├── authelia/
+│   ├── configuration.yml
+│   └── users_database.yml
+└── journal.txt                 (ce fichier)
+
+CONFIGURATION RÉSEAU
+--------------------
+- Domaine local   : llm.test
+- HTTPS           : certificat local généré par Caddy (tls internal)
+- Port exposé     : 443
+
+URLs d'accès :
+  https://auth.llm.test       → Portail Authelia
+  https://chat.llm.test       → Open WebUI
+  https://cloud.llm.test      → Nextcloud
+  https://portainer.llm.test  → Portainer
+
+Entrées /etc/hosts ajoutées :
+  127.0.0.1  auth.llm.test chat.llm.test cloud.llm.test portainer.llm.test
+
+COMPTE AUTHELIA
+---------------
+- Utilisateur : hugo
+- Email       : hugoleonardi54@gmail.com
+- Mot de passe: défini lors de la génération du hash bcrypt
+- Groupe      : admins
+
+PROBLÈMES RENCONTRÉS ET SOLUTIONS
+----------------------------------
+
+1. DOCKER — permission denied sur /var/run/docker.sock
+   Cause   : session ouverte avant l'ajout au groupe docker
+   Fix     : fermer/rouvrir la session (newgrp docker ne persiste pas)
+
+2. CADDY — port 80 déjà occupé
+   Cause   : un autre service tournait sur le port 80
+   Fix     : passage sur le port 8080, puis finalement 443 (HTTPS)
+
+3. AUTHELIA — crash au démarrage (3 erreurs de config)
+   Erreur 1: domain 'localhost' invalide (doit avoir un point)
+   Erreur 2: authelia_url doit être HTTPS
+   Erreur 3: default_redirection_url == authelia_url interdit
+   Fix     : changement de domaine localhost → llm.test, passage HTTPS
+
+4. PERMISSIONS — fichiers authelia owned par root
+   Cause   : fichiers créés initialement par Claude Code (root)
+   Fix     : sudo chown -R hugo_leonardi:hugo_leonardi ~/llm-server/authelia/
+
+COMMANDES UTILES
+----------------
+# Démarrer tous les services
+sudo docker compose up -d
+
+# Arrêter tous les services
+sudo docker compose down
+
+# Voir l'état des conteneurs
+sudo docker compose ps
+
+# Logs d'un service
+sudo docker compose logs authelia --tail 50
+sudo docker compose logs caddy --tail 50
+
+# Redémarrer un seul service
+sudo docker compose restart authelia
+
+# Exporter le certificat CA local de Caddy
+sudo docker cp caddy:/data/caddy/pki/authorities/local/root.crt ~/llm-server/caddy-local-ca.crt
+
+PROCHAINES ÉTAPES
+-----------------
+Phase 2 — GPU et Ollama :
+  1. Installer drivers AMD + ROCm 7.x
+  2. Vérifier : rocminfo, rocm-smi
+  3. Installer Ollama (script officiel)
+  4. Variables : OLLAMA_HOST=0.0.0.0, HSA_OVERRIDE_GFX_VERSION=11.0.0
+  5. Télécharger modèle : ollama pull qwen2.5:14b-instruct-q4_K_M
+  6. Mettre à jour OLLAMA_BASE_URL dans docker-compose.yml
+
+Phase 3 — WireGuard VPN :
+  1. Ajouter le service wireguard dans docker-compose.yml
+  2. Ouvrir port UDP 51820 dans UFW
+  3. Configurer les clients (laptop, téléphone)
+
+Phase 4 — Hermes Agent :
+  1. Installer via script officiel NousResearch
+  2. Pointer vers Ollama localhost:11434
+  3. Configurer passerelle Telegram/Discord (optionnel)
+
+================================================================

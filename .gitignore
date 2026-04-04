@@ -2,3 +2,4 @@ authelia/db.sqlite3
 authelia/notifications.txt
 caddy-local-ca.crt
 .env
+.claude/settings.local.json

@@ -6,7 +6,11 @@
       "Bash(dpkg -l)",
       "Bash(sudo apt-get:*)",
       "Bash(systemctl is-active:*)",
-      "Bash(docker info:*)"
+      "Bash(docker info:*)",
+      "Read(//home/hugo_leonardi/PortfolioDevOpsCloud/projects/**)",
+      "Read(//home/hugo_leonardi/PortfolioDevOpsCloud/css/**)",
+      "Bash(find . -type f ! -path './.git/*' -exec ls -lh {})",
+      "Read(//home/hugo_leonardi/llm-server/**)"
     ]
   }
 }
