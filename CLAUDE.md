@@ -15,7 +15,8 @@ en ingénierie CVC (chauffage, ventilation, climatisation).
 ## Architecture cible (document de référence : architecture-serveur-llm.pdf)
 
 - **Ollama** — bare metal, GPU via ROCm, port 11434
-- **Open WebUI** — interface chat, connectée à Ollama
+- **Open WebUI** — interface chat, connectée à Ollama + recherche web via SearXNG
+- **SearXNG** — moteur de recherche meta (interne uniquement, pas exposé publiquement)
 - **Nextcloud** — cloud privé (+ MariaDB + Redis)
 - **Hermes Agent** — agent IA autonome (NousResearch)
 - **Caddy** — reverse proxy HTTPS
@@ -30,10 +31,13 @@ Le script `setup.sh` automatise l'intégralité du déploiement (système, Docke
 
 ## État actuel
 
-Stack déployée en production avec domaine réel. Ollama et WireGuard ne sont pas encore déployés.
+Stack déployée en production avec domaine réel. WireGuard n'est pas encore déployé.
 
 Services actifs via Docker Compose :
-- Caddy, Authelia, Open WebUI, Nextcloud (+ MariaDB + Redis), Portainer
+- Caddy, Authelia, Open WebUI, SearXNG, Nextcloud (+ MariaDB + Redis), Portainer
+
+Services bare metal :
+- Ollama (systemd, port 11434, GPU AMD via ROCm 6.4)
 
 ## Réseau
 
@@ -66,6 +70,8 @@ llm-server/
 ├── authelia/
 │   ├── configuration.yml    — config SSO
 │   └── users_database.yml   — utilisateurs (hash bcrypt)
+├── searxng/
+│   └── settings.yml         — config SearXNG (JSON activé, limiter désactivé)
 └── journal.txt              — historique des actions et décisions
 ```
 
@@ -91,8 +97,7 @@ llm-server/
 ## Prochaines étapes
 
 1. **Passer Authelia en `two_factor`** : activer TOTP pour la production
-2. **Phase 2 — Ollama** : installer ROCm 6.4 + Ollama bare metal (`bash setup.sh rocm` puis `bash setup.sh ollama`)
-3. **Phase 3 — WireGuard** : VPN pour accès distant (Freebox)
+2. **Phase 3 — WireGuard** : VPN pour accès distant (Freebox)
 4. **Phase 4 — Hermes Agent** : agent IA autonome (NousResearch)
 5. **Phase 5 — Monitoring** : Grafana + Prometheus
 

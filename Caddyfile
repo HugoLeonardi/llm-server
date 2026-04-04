@@ -19,7 +19,13 @@ chat.alba-arietis.com {
         uri /api/authz/forward-auth
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
     }
-    reverse_proxy open-webui:8080
+    reverse_proxy open-webui:8080 {
+        flush_interval -1
+        transport http {
+            read_timeout  10m
+            write_timeout 10m
+        }
+    }
 }
 
 # --- Nextcloud (Cloud privé) ---
